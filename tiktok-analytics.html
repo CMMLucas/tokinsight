@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TokInsight — TikTok Analytics</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#09090f;--bg2:#111119;--card:#16162a;--card2:#1c1c34;
+    --border:#252540;--text:#ebebf5;--text2:#9090b0;--muted:#55556e;
+    --pink:#fe2c55;--cyan:#25f4ee;--purple:#a855f7;--gold:#f59e0b;--green:#22c55e;
+    --pink-glow:rgba(254,44,85,0.15);--cyan-glow:rgba(37,244,238,0.12);
+  }
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+  .nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(16px)}
+  .brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800}
+  .brand-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--pink),var(--purple));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
+  .brand .hi{color:var(--pink)}
+  .hero{max-width:720px;margin:48px auto 0;padding:0 20px;text-align:center;transition:margin .4s}
+  .hero.small{margin-top:20px}
+  .hero h1{font-size:36px;font-weight:900;line-height:1.15;margin-bottom:10px}
+  .hero h1 .g1{background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .hero h1 .g2{background:linear-gradient(135deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .hero p{color:var(--text2);font-size:15px;margin-bottom:28px}
+  .search-wrap{display:flex;background:var(--card);border:2px solid var(--border);border-radius:16px;overflow:hidden;transition:all .3s}
+  .search-wrap:focus-within{border-color:var(--pink);box-shadow:0 0 0 4px var(--pink-glow)}
+  .search-wrap input{flex:1;padding:18px 22px;background:0 0;border:0;color:var(--text);font-size:15px;font-family:inherit;outline:0}
+  .search-wrap input::placeholder{color:var(--muted)}
+  .search-wrap button{padding:18px 36px;background:linear-gradient(135deg,var(--pink),#e0164a);border:0;color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;transition:opacity .2s;white-space:nowrap}
+  .search-wrap button:hover{opacity:.88}
+  .search-wrap button:disabled{opacity:.5;cursor:default}
+  .demo-hint{margin-top:14px;font-size:12px;color:var(--muted)}
+  .demo-hint span{color:var(--cyan);cursor:pointer;text-decoration:underline}
+  .error-box{display:none;max-width:600px;margin:16px auto;padding:14px 20px;background:rgba(254,44,85,.1);border:1px solid rgba(254,44,85,.3);border-radius:12px;color:#ff6b8a;font-size:13px;text-align:center}
+  .error-box.on{display:block}
+  .loader{display:none;position:fixed;inset:0;background:rgba(9,9,15,.92);z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+  .loader.on{display:flex}
+  .spin{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--pink);border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .load-title{color:var(--text2);font-size:14px;font-weight:500}
+  .load-bar{width:280px;height:4px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:4px}
+  .load-fill{height:100%;width:0;background:linear-gradient(90deg,var(--pink),var(--cyan));border-radius:4px;transition:width .5s ease}
+  .load-sub{color:var(--muted);font-size:12px;margin-top:4px}
+  .dash{display:none;max-width:1440px;margin:0 auto;padding:28px 24px 60px}
+  .dash.on{display:block;animation:fadeUp .5s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  .profile{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:24px 28px;display:flex;align-items:center;gap:22px;margin-bottom:24px}
+  .avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--purple));display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;flex-shrink:0;color:#fff}
+  .p-info h2{font-size:20px;font-weight:700}
+  .p-info .handle{color:var(--pink);font-size:13px;font-weight:500}
+  .p-info .handle a{color:inherit;text-decoration:none}
+  .p-info .handle a:hover{text-decoration:underline}
+  .p-stats{display:flex;gap:32px;margin-left:auto}
+  .p-stat{text-align:center}
+  .p-stat .v{font-size:20px;font-weight:800}
+  .p-stat .l{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;position:relative;overflow:hidden;transition:transform .2s}
+  .kpi:hover{transform:translateY(-2px)}
+  .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .kpi.c1::before{background:linear-gradient(90deg,var(--pink),#ff6090)}
+  .kpi.c2::before{background:linear-gradient(90deg,var(--cyan),#69f0ff)}
+  .kpi.c3::before{background:linear-gradient(90deg,var(--purple),#c084fc)}
+  .kpi.c4::before{background:linear-gradient(90deg,var(--gold),#fbbf24)}
+  .kpi.c5::before{background:linear-gradient(90deg,var(--green),#4ade80)}
+  .kpi-l{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .kpi-v{font-size:26px;font-weight:800;margin-top:5px}
+  .kpi-s{font-size:11px;color:var(--muted);margin-top:3px}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:28px}
+  .chart-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+  .chart-box h3{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:14px}
+  .bar-chart{display:flex;flex-direction:column;gap:10px}
+  .bar-row{display:flex;align-items:center;gap:10px}
+  .bar-label{font-size:12px;color:var(--text2);width:110px;text-align:right;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-track{flex:1;height:28px;background:var(--bg);border-radius:6px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding:0 10px;font-size:11px;font-weight:700;color:#fff;min-width:40px;transition:width .8s ease}
+  .bar-val{font-size:12px;color:var(--text);width:65px;text-align:right;flex-shrink:0;font-weight:600}
+  .eng-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+  .eng-card{background:var(--bg);border-radius:10px;padding:14px;text-align:center}
+  .eng-card .ev{font-size:22px;font-weight:800}
+  .eng-card .el{font-size:11px;color:var(--text2);margin-top:3px}
+  .filters{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .f-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  .f-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s;font-weight:500}
+  .f-btn:hover{border-color:var(--pink);color:var(--text)}
+  .f-btn.on{background:var(--pink);border-color:var(--pink);color:#fff;font-weight:700}
+  .f-sep{width:1px;height:24px;background:var(--border);margin:0 6px}
+  .f-select{padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-family:inherit;cursor:pointer;outline:0}
+  .f-select:focus{border-color:var(--pink)}
+  option{background:var(--card);color:var(--text)}
+  .results-n{font-size:12px;color:var(--muted);margin-bottom:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+  .vcard{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:all .25s;cursor:pointer;text-decoration:none;color:inherit;display:block}
+  .vcard:hover{transform:translateY(-4px);border-color:var(--pink);box-shadow:0 8px 32px rgba(254,44,85,.12)}
+  .vthumb{height:200px;position:relative;overflow:hidden;background:var(--bg2)}
+  .vthumb img{width:100%;height:100%;object-fit:cover;transition:transform .3s}
+  .vcard:hover .vthumb img{transform:scale(1.05)}
+  .vthumb-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:42px;background:linear-gradient(135deg,#1a1a3e,#2a1a3e)}
+  .play-btn{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);opacity:0;transition:opacity .25s}
+  .play-btn::after{content:'\25B6';font-size:36px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+  .vcard:hover .play-btn{opacity:1}
+  .vrank{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700}
+  .vrank.t3{background:var(--pink)}
+  .vcatbadge{position:absolute;top:10px;right:10px;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:700;backdrop-filter:blur(8px)}
+  .vdur{position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.75);padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600}
+  .vbody{padding:14px 16px}
+  .vdesc{font-size:13px;font-weight:500;line-height:1.45;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .vtags{font-size:11px;color:var(--cyan);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .vmetrics{display:flex;gap:12px;flex-wrap:wrap}
+  .vm{display:flex;align-items:center;gap:3px;font-size:12px;color:var(--text2)}
+  .vm b{color:var(--text);font-weight:600}
+  .vfoot{font-size:11px;color:var(--muted);margin-top:10px;display:flex;gap:12px;align-items:center}
+  .viral{display:inline-block;background:linear-gradient(135deg,var(--pink),var(--gold));color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px;vertical-align:middle;margin-left:6px}
+  .eng-badge{display:inline-block;background:rgba(37,244,238,.12);color:var(--cyan);font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:4px}
+  .cc-dance{background:rgba(254,44,85,.18);color:#ff6090}
+  .cc-lipsync{background:rgba(37,244,238,.18);color:#69f0ff}
+  .cc-grwm{background:rgba(168,85,247,.18);color:#c084fc}
+  .cc-haul{background:rgba(245,158,11,.18);color:#fbbf24}
+  .cc-comedy{background:rgba(34,197,94,.18);color:#4ade80}
+  .cc-storytime{background:rgba(244,63,94,.18);color:#fb7185}
+  .cc-transition{background:rgba(59,130,246,.18);color:#60a5fa}
+  .cc-lifestyle{background:rgba(236,72,153,.18);color:#f472b6}
+  .cc-food{background:rgba(251,146,60,.18);color:#fb923c}
+  .cc-fitness{background:rgba(14,165,233,.18);color:#38bdf8}
+  .cc-trend{background:rgba(250,204,21,.18);color:#facc15}
+  .cc-collab{background:rgba(20,184,166,.18);color:#2dd4bf}
+  .cc-other{background:rgba(148,163,184,.18);color:#94a3b8}
+  .empty{text-align:center;padding:60px 20px;color:var(--muted);grid-column:1/-1}
+  .empty .ei{font-size:48px;margin-bottom:12px}
+  ::-webkit-scrollbar{width:7px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+  @media(max-width:900px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .charts{grid-template-columns:1fr}
+    .profile{flex-direction:column;text-align:center}
+    .p-stats{margin-left:0;justify-content:center}
+  }
+  @media(max-width:600px){
+    .kpis{grid-template-columns:1fr}
+    .grid{grid-template-columns:1fr}
+    .hero h1{font-size:26px}
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="brand"><div class="brand-icon">&#9835;</div>Tok<span class="hi">Insight</span></div>
+  <div style="font-size:12px;color:var(--muted)">Real TikTok Analytics</div>
+</nav>
+
+<section class="hero" id="hero">
+  <h1><span class="g1">Analyse</span> les meilleurs <span class="g2">TikToks</span> de n'importe quel compte</h1>
+  <p>Colle le lien ou le @username — on scanne toutes les vidéos et on te montre les top performers avec les vraies données</p>
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="https://tiktok.com/@username ou @username" />
+    <select id="maxVids" style="padding:12px 10px;background:var(--bg2);border:none;border-left:1px solid var(--border);color:var(--text);font-family:inherit;font-size:13px;cursor:pointer;outline:0">
+      <option value="100">100 vidéos</option>
+      <option value="200">200 vidéos</option>
+      <option value="500">500 vidéos</option>
+      <option value="1000" selected>1000 vidéos (max)</option>
+    </select>
+    <button id="searchBtn">Analyser</button>
+  </div>
+  <div class="demo-hint">Essaye : <span class="demo" data-u="khaby.lame">@khaby.lame</span> · <span class="demo" data-u="charlidamelio">@charlidamelio</span> · <span class="demo" data-u="addisonre">@addisonre</span></div>
+</section>
+
+<div class="error-box" id="errorBox"></div>
+
+<div class="loader" id="loader">
+  <div class="spin"></div>
+  <div class="load-title" id="loadTitle">Scan du compte TikTok en cours...</div>
+  <div class="load-bar"><div class="load-fill" id="loadFill"></div></div>
+  <div class="load-sub" id="loadSub">Récupération des vidéos via TikTok...</div>
+</div>
+
+<main class="dash" id="dash">
+  <div class="profile" id="profileCard"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="charts">
+    <div class="chart-box">
+      <h3>Top catégories par nombre de vues</h3>
+      <div id="barChart"></div>
+    </div>
+    <div class="chart-box">
+      <h3>Engagement moyen par catégorie</h3>
+      <div id="engChart"></div>
+    </div>
+  </div>
+  <div class="filters" id="filters"></div>
+  <div class="results-n" id="resCount"></div>
+  <div class="grid" id="grid"></div>
+</main>
+<script>
+const API_BASE = window.location.origin;
+const CAT_COLORS = {
+  dance:'#fe2c55', lipsync:'#25f4ee', grwm:'#a855f7', haul:'#f59e0b',
+  comedy:'#22c55e', storytime:'#f43f5e', transition:'#3b82f6', lifestyle:'#ec4899',
+  food:'#fb923c', fitness:'#0ea5e9', trend:'#facc15', collab:'#14b8a6', other:'#94a3b8'
+};
+
+const fmt = n => {
+  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+  return n.toString();
+};
+const fmtDate = d => {
+  if (!d || d.length !== 8) return '';
+  return d.slice(6,8)+'/'+d.slice(4,6)+'/'+d.slice(0,4);
+};
+const fmtDur = s => {
+  if (s >= 60) return Math.floor(s/60)+':'+(s%60+'').padStart(2,'0');
+  return '0:'+(s+'').padStart(2,'0');
+};
+
+let profile = null, videos = [], activeCat = 'all', sortKey = 'views';
+
+async function startAnalysis() {
+  const raw = document.getElementById('searchInput').value.trim();
+  if (!raw) return;
+  const maxVids = document.getElementById('maxVids').value;
+  const btn = document.getElementById('searchBtn');
+  const loader = document.getElementById('loader');
+  const fill = document.getElementById('loadFill');
+  const sub = document.getElementById('loadSub');
+  const errBox = document.getElementById('errorBox');
+  btn.disabled = true;
+  errBox.classList.remove('on');
+  loader.classList.add('on');
+  fill.style.width = '10%';
+  sub.textContent = 'Connexion \u00e0 TikTok (scan de '+maxVids+' vid\u00e9os)...';
+  let pct = 10;
+  const speed = maxVids > 200 ? 2 : 5;
+  const progressIv = setInterval(() => {
+    if (pct < 85) { pct += Math.random() * speed; fill.style.width = pct + '%'; }
+    if (pct > 20 && pct < 40) sub.textContent = 'R\u00e9cup\u00e9ration des vid\u00e9os ('+maxVids+' max)...';
+    if (pct > 40 && pct < 60) sub.textContent = 'Analyse des m\u00e9triques...';
+    if (pct > 60 && pct < 75) sub.textContent = 'Cat\u00e9gorisation du contenu...';
+    if (pct > 75) sub.textContent = 'Presque termin\u00e9, patience...';
+  }, 1500);
+  try {
+    const resp = await fetch(API_BASE+'/api/analyze?username='+encodeURIComponent(raw)+'&max='+maxVids);
+    const data = await resp.json();
+    clearInterval(progressIv);
+    if (!resp.ok || data.error) { throw new Error(data.error || 'Erreur inconnue'); }
+    fill.style.width = '100%';
+    sub.textContent = 'Termin\u00e9 !';
+    profile = data.profile;
+    videos = data.videos;
+    activeCat = 'all';
+    sortKey = 'views';
+    setTimeout(() => {
+      loader.classList.remove('on');
+      btn.disabled = false;
+      document.getElementById('hero').classList.add('small');
+      showDash();
+    }, 500);
+  } catch (err) {
+    clearInterval(progressIv);
+    loader.classList.remove('on');
+    btn.disabled = false;
+    errBox.textContent = '\u26a0\ufe0f ' + err.message;
+    errBox.classList.add('on');
+  }
+}
+function showDash() {
+  document.getElementById('dash').classList.add('on');
+  renderProfile();
+  renderKPIs();
+  renderCharts();
+  renderFilters();
+  renderGrid();
+  document.getElementById('dash').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderProfile() {
+  const p = profile;
+  const ini = p.displayName.split(/[\s._-]/).filter(Boolean).map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('profileCard').innerHTML =
+    '<div class="avatar">'+ini+'</div>'+
+    '<div class="p-info"><h2>'+p.displayName+'</h2>'+
+    '<div class="handle"><a href="'+p.profileUrl+'" target="_blank" rel="noopener">@'+p.username+' \u2197</a></div></div>'+
+    '<div class="p-stats">'+
+    '<div class="p-stat"><div class="v">'+videos.length+'</div><div class="l">Vid\u00e9os scann\u00e9es</div></div>'+
+    '<div class="p-stat"><div class="v">'+fmt(videos.reduce((s,v)=>s+v.views,0))+'</div><div class="l">Vues totales</div></div>'+
+    '<div class="p-stat"><div class="v">'+fmt(videos.reduce((s,v)=>s+v.likes,0))+'</div><div class="l">Likes totaux</div></div></div>';
+}
+
+function renderKPIs() {
+  const tv = videos.reduce((s,v)=>s+v.views,0);
+  const av = Math.round(tv / videos.length);
+  const ae = (videos.reduce((s,v)=>s+v.engagement,0) / videos.length).toFixed(1);
+  const vc = videos.filter(v=>v.views >= 1000000).length;
+  const best = [...videos].sort((a,b)=>b.views-a.views)[0];
+  document.getElementById('kpis').innerHTML =
+    '<div class="kpi c1"><div class="kpi-l">Total vues</div><div class="kpi-v">'+fmt(tv)+'</div><div class="kpi-s">'+videos.length+' vid\u00e9os analys\u00e9es</div></div>'+
+    '<div class="kpi c2"><div class="kpi-l">Moyenne / vid\u00e9o</div><div class="kpi-v">'+fmt(av)+'</div><div class="kpi-s">Vues par publication</div></div>'+
+    '<div class="kpi c3"><div class="kpi-l">Engagement moyen</div><div class="kpi-v">'+ae+'%</div><div class="kpi-s">(likes+comments+shares)/vues</div></div>'+
+    '<div class="kpi c4"><div class="kpi-l">Vid\u00e9os 1M+ vues</div><div class="kpi-v">'+vc+'</div><div class="kpi-s">Sur '+videos.length+' vid\u00e9os</div></div>'+
+    '<div class="kpi c5"><div class="kpi-l">Best performer</div><div class="kpi-v">'+fmt(best.views)+'</div><div class="kpi-s">'+best.category.emoji+' '+best.category.label+'</div></div>';
+}
+
+function renderCharts() {
+  const catMap = {};
+  videos.forEach(v => {
+    const cid = v.category.id;
+    if (!catMap[cid]) catMap[cid] = { label: v.category.emoji+' '+v.category.label, views: 0, count: 0, engagement: 0, color: CAT_COLORS[cid] || '#666' };
+    catMap[cid].views += v.views;
+    catMap[cid].count++;
+    catMap[cid].engagement += v.engagement;
+  });
+  const sorted = Object.values(catMap).sort((a,b)=>b.views-a.views);
+  const maxV = sorted[0] ? sorted[0].views : 1;
+  let barHTML = '<div class="bar-chart">';
+  sorted.forEach(c => {
+    const pct = Math.max(8, c.views/maxV*100);
+    barHTML += '<div class="bar-row"><div class="bar-label">'+c.label+'</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+c.color+'">'+c.count+' vid</div></div><div class="bar-val">'+fmt(c.views)+'</div></div>';
+  });
+  barHTML += '</div>';
+  document.getElementById('barChart').innerHTML = barHTML;
+  const engData = Object.values(catMap).map(c => ({...c, avgEng: (c.engagement/c.count).toFixed(1)})).sort((a,b)=>b.avgEng-a.avgEng);
+  let engHTML = '<div class="eng-grid">';
+  engData.forEach(c => {
+    engHTML += '<div class="eng-card"><div class="ev" style="color:'+c.color+'">'+c.avgEng+'%</div><div class="el">'+c.label+'</div></div>';
+  });
+  engHTML += '</div>';
+  document.getElementById('engChart').innerHTML = engHTML;
+}
+function renderFilters() {
+  const used = [...new Set(videos.map(v=>v.category.id))];
+  let h = '<span class="f-label">Cat\u00e9gorie :</span>';
+  h += '<button class="f-btn '+(activeCat==='all'?'on':'')+'" data-cat="all">Toutes</button>';
+  const catCounts = {};
+  videos.forEach(v => { catCounts[v.category.id] = (catCounts[v.category.id]||0)+1; });
+  const sortedCats = used.sort((a,b)=>(catCounts[b]||0)-(catCounts[a]||0));
+  sortedCats.forEach(cid => {
+    const v = videos.find(v=>v.category.id===cid);
+    h += '<button class="f-btn '+(activeCat===cid?'on':'')+'" data-cat="'+cid+'">'+v.category.emoji+' '+v.category.label+' ('+catCounts[cid]+')</button>';
+  });
+  h += '<div class="f-sep"></div><span class="f-label">Trier :</span>';
+  h += '<select class="f-select" id="sortSelect">';
+  h += '<option value="views"'+(sortKey==='views'?' selected':'')+'>\ud83d\udc41\ufe0f Vues</option>';
+  h += '<option value="likes"'+(sortKey==='likes'?' selected':'')+'>❤️ Likes</option>';
+  h += '<option value="comments"'+(sortKey==='comments'?' selected':'')+'>💬 Commentaires</option>';
+  h += '<option value="shares"'+(sortKey==='shares'?' selected':'')+'>🔁 Partages</option>';
+  h += '<option value="saves"'+(sortKey==='saves'?' selected':'')+'>📌 Saves</option>';
+  h += '<option value="engagement"'+(sortKey==='engagement'?' selected':'')+'>📊 Engagement %</option>';
+  h += '<option value="date"'+(sortKey==='date'?' selected':'')+'>📅 Plus r\u00e9cent</option>';
+  h += '</select>';
+  document.getElementById('filters').innerHTML = h;
+  document.querySelectorAll('.f-btn[data-cat]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      activeCat = this.dataset.cat;
+      renderFilters();
+      renderGrid();
+    });
+  });
+  document.getElementById('sortSelect').addEventListener('change', function() {
+    sortKey = this.value;
+    renderGrid();
+  });
+}
+
+function renderGrid() {
+  let list = activeCat==='all' ? [...videos] : videos.filter(v=>v.category.id===activeCat);
+  if (sortKey==='date') list.sort((a,b)=>b.timestamp-a.timestamp);
+  else list.sort((a,b)=>b[sortKey]-a[sortKey]);
+  document.getElementById('resCount').textContent = list.length+' vid\u00e9o'+(list.length>1?'s':'')+' trouv\u00e9e'+(list.length>1?'s':'');
+  if (!list.length) {
+    document.getElementById('grid').innerHTML = '<div class="empty"><div class="ei">\ud83d\udd0d</div><p>Aucune vid\u00e9o dans cette cat\u00e9gorie</p></div>';
+    return;
+  }
+  const isViral = v => v.views >= 1000000;
+  let h = '';
+  list.forEach((v,i) => {
+    const rk = i+1;
+    const catClass = 'cc-'+v.category.id;
+    const descClean = v.description.replace(/#\w+/g,'').trim();
+    h += '<a class="vcard" href="'+v.url+'" target="_blank" rel="noopener">';
+    h += '<div class="vthumb">';
+    if (v.thumbnail) {
+      h += '<img src="'+v.thumbnail+'" alt="" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=vthumb-placeholder>'+v.category.emoji+'</div>\'">';
+    } else {
+      h += '<div class="vthumb-placeholder">'+v.category.emoji+'</div>';
+    }
+    h += '<div class="play-btn"></div>';
+    h += '<div class="vrank '+(rk<=3?'t3':'')+'">#'+rk+'</div>';
+    h += '<div class="vcatbadge '+catClass+'">'+v.category.emoji+' '+v.category.label+'</div>';
+    h += '<div class="vdur">'+fmtDur(v.duration)+'</div>';
+    h += '</div>';
+    h += '<div class="vbody">';
+    h += '<div class="vdesc">'+(descClean || v.category.label)+(isViral(v)?'<span class="viral">VIRAL</span>':'')+(v.engagement>10?'<span class="eng-badge">'+v.engagement.toFixed(1)+'% eng.</span>':'')+'</div>';
+    h += '<div class="vtags">'+v.hashtags.join(' ')+'</div>';
+    h += '<div class="vmetrics">';
+    h += '<div class="vm">\ud83d\udc41\ufe0f <b>'+fmt(v.views)+'</b></div>';
+    h += '<div class="vm">\u2764\ufe0f <b>'+fmt(v.likes)+'</b></div>';
+    h += '<div class="vm">\ud83d\udcac <b>'+fmt(v.comments)+'</b></div>';
+    h += '<div class="vm">\ud83d\udd01 <b>'+fmt(v.shares)+'</b></div>';
+    h += '<div class="vm">\ud83d\udccc <b>'+fmt(v.saves)+'</b></div>';
+    h += '</div>';
+    h += '<div class="vfoot">';
+    h += '<span>\ud83d\udcc5 '+fmtDate(v.date)+'</span>';
+    h += '<span>\ud83d\udcca '+v.engagement.toFixed(1)+'% engagement</span>';
+    h += '</div></div></a>';
+  });
+  document.getElementById('grid').innerHTML = h;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('searchBtn').addEventListener('click', startAnalysis);
+  document.getElementById('searchInput').addEventListener('keydown', e => {
+    if (e.key==='Enter') startAnalysis();
+  });
+  document.querySelectorAll('.demo').forEach(el => {
+    el.addEventListener('click', function() {
+      document.getElementById('searchInput').value = '@'+this.dataset.u;
+      startAnalysis();
+    });
+  });
+});
+<\/script>
+</body>
+</html>
